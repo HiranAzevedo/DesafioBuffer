@@ -32,8 +32,6 @@ namespace ProducerApp
         // Ip do servidor
         private static string ip = "192.168.88.51";
 
-        private static CountdownEvent countdown;
-
         // ManualResetEvent instancias que servem de flags.
         private static ManualResetEvent connectDone = new ManualResetEvent(false);
         private static ManualResetEvent sendDone = new ManualResetEvent(false);
