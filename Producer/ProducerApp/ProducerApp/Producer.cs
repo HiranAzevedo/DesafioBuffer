@@ -44,7 +44,7 @@ namespace ProducerApp
 
         private static bool StartClient(string taskName)
         {
-            // Connect to a remote device.
+            // Conecta com o servidor
             IPHostEntry ipHostInfo = Dns.Resolve(ip);
             Stopwatch clock = new Stopwatch();
             IPAddress ipAddress = ipHostInfo.AddressList[0];
@@ -53,8 +53,7 @@ namespace ProducerApp
             {
                 try
                 {
-
-                    // Establish the remote endpoint for the socket.
+                    // Configura o endpoint com as informações do servidor
                     IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
                     clock.Reset();
 
@@ -66,7 +65,7 @@ namespace ProducerApp
                     connectDone.WaitOne();
 
                     // Send test data to the remote device.
-                    int random = new Random().Next(500);
+                    int random = new Random().Next(999);
                     clock.Start();
                     Send(client, "Add by produtor {" + taskName + "} [" + random + "] <EOF>");
                     sendDone.WaitOne();
@@ -76,18 +75,15 @@ namespace ProducerApp
                     receiveDone.WaitOne();
                     clock.Stop();
 
-                    // Write the response to the console.
-                    Console.WriteLine("Resposta : {0}", response);
-
                     if (response.ToLower().Equals("ok add"))
                     {
-                        Console.WriteLine("Colocado o valor {0} no Buffer pelo Produtor {1} em {2} Segundos", random, taskName, clock.Elapsed.Seconds);
-                        Thread.Sleep(2000);
+                        Console.WriteLine("Colocado o valor {0} no Buffer pelo Produtor {1} em {2} segundos", random, taskName, clock.Elapsed.TotalSeconds);
+                        Thread.Sleep(1000);
                     }
                     else if (response.ToLower().Equals("full"))
                     {
                         Console.WriteLine("Produtor {0} tentou colocar item no Buffer cheio", taskName);
-                        Thread.Sleep(17000);
+                        Thread.Sleep(5000);
                     }
 
                     // Release the socket.
@@ -96,7 +92,7 @@ namespace ProducerApp
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.ToString());
+                    //Console.WriteLine(e.ToString());
                     Thread.Sleep(2000);
                 }
             }
@@ -112,14 +108,12 @@ namespace ProducerApp
                 // Complete the connection.
                 client.EndConnect(ar);
 
-                Console.WriteLine("Socket conectado a {0}", client.RemoteEndPoint.ToString());
-
                 // Signal that the connection has been made.
                 connectDone.Set();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
@@ -136,7 +130,7 @@ namespace ProducerApp
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
@@ -173,7 +167,7 @@ namespace ProducerApp
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
@@ -181,11 +175,9 @@ namespace ProducerApp
         {
             // Convert the string data to byte data using ASCII encoding.
             byte[] byteData = Encoding.ASCII.GetBytes(data);
-            Console.WriteLine("Enviando {0} para o servidor.", data);
 
             // Begin sending the data to the remote device.
-            client.BeginSend(byteData, 0, byteData.Length, 0,
-                new AsyncCallback(SendCallback), client);
+            client.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), client);
         }
 
         private static void SendCallback(IAsyncResult ar)
@@ -196,31 +188,31 @@ namespace ProducerApp
                 Socket client = (Socket)ar.AsyncState;
                 // Complete sending the data to the remote device.
                 int bytesSent = client.EndSend(ar);
-                Console.WriteLine("Enviado");
                 // Signal that all bytes have been sent.
                 sendDone.Set();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
         public static int Main(String[] args)
         {
-            //Console.WriteLine("Informe o ip do servidor buffer:");
-            //string ipServer = Console.ReadLine();
-            //ProducerAsync.ip = ipServer;
-            //Console.WriteLine("Informe a porta do servidor:");
-            //int portNumber = Convert.ToInt32(Console.ReadLine());
-            //ProducerAsync.port = portNumber;
-            //Console.WriteLine("Informe a quantidade de threads que devem estar rodando no produtor:");
-            //int threadCount = Convert.ToInt32(Console.ReadLine());
-            int threadCount = 1;
+            Console.WriteLine("Olá este é o produtor de dados,");
+            Console.WriteLine("Informe o ip do servidor buffer:");
+            string ipServer = Console.ReadLine();
+            ProducerAsync.ip = ipServer;
+            Console.WriteLine("Informe a porta do servidor:");
+            int portNumber = Convert.ToInt32(Console.ReadLine());
+            ProducerAsync.port = portNumber;
+            Console.WriteLine("Informe a quantidade de threads que devem estar rodando no produtor:");
+            int threadCount = Convert.ToInt32(Console.ReadLine());
             List<Task> taskList = new List<Task>();
             for (int i = 0; i < threadCount; i++)
             {
-                var task = Task.Factory.StartNew(() => StartClient("Thread " + i));
+                string taskName = "Produtor " + i;
+                var task = Task.Factory.StartNew(() => StartClient(taskName));
                 taskList.Add(task);
             }
             Task.WaitAll(taskList.ToArray());

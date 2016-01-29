@@ -64,7 +64,6 @@ namespace ProducerApp
                     connectDone.WaitOne();
 
                     // Send test data to the remote device.
-                    int random = new Random().Next(500);
                     clock.Start();
                     Send(client, "DROP by {" + taskName + "} <EOF>");
                     sendDone.WaitOne();
@@ -73,26 +72,30 @@ namespace ProducerApp
                     Receive(client);
                     receiveDone.WaitOne();
                     clock.Stop();
-                    // Write the response to the console.
-                    Console.WriteLine("Resposta : {0}", response);
-
-                    // Release the socket.
-                    client.Shutdown(SocketShutdown.Both);
-                    client.Close();
-
+                    
+                    
                     if (response.ToLower().Contains("ok drop"))
                     {
-                        Console.WriteLine("Retirado o valor {0} no Buffer pelo Produtor {1} em {2} Segundos", random, taskName, clock.Elapsed.Seconds);
+                        int sLengthNumber = response.IndexOf('[') + 1;
+                        int fLengthNumber = (response.IndexOf(']') - sLengthNumber);
+                        int numberDroped = Convert.ToInt32(response.Substring(sLengthNumber, fLengthNumber));
+                        Console.WriteLine("Retirado o valor {0} no Buffer pelo Produtor {1} em {2} segundos", numberDroped, taskName, clock.Elapsed.TotalSeconds);
+                        Thread.Sleep(1000);
                     }
                     else if (response.ToLower().Contains("empty"))
                     {
                         Console.WriteLine("Produtor {0} tentou retirar item no Buffer vazio", taskName);
-                        Thread.Sleep(15000);
+                        Thread.Sleep(5000);
                     }
+
+                    // Release the socket.
+                    client.Shutdown(SocketShutdown.Both);
+                    client.Close();
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.ToString());
+                    //Console.WriteLine(e.ToString());
+                    Thread.Sleep(2000);
                 }
             }
         }
@@ -107,14 +110,12 @@ namespace ProducerApp
                 // Complete the connection.
                 client.EndConnect(ar);
 
-                Console.WriteLine("Socket conectado a {0}", client.RemoteEndPoint.ToString());
-
                 // Signal that the connection has been made.
                 connectDone.Set();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+               // Console.WriteLine(e.ToString());
             }
         }
 
@@ -131,7 +132,7 @@ namespace ProducerApp
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
@@ -168,7 +169,7 @@ namespace ProducerApp
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
@@ -176,8 +177,7 @@ namespace ProducerApp
         {
             // Convert the string data to byte data using ASCII encoding.
             byte[] byteData = Encoding.ASCII.GetBytes(data);
-            Console.WriteLine("Enviando {0} para o servidor.", data);
-
+           
             // Begin sending the data to the remote device.
             client.BeginSend(byteData, 0, byteData.Length, 0,
                 new AsyncCallback(SendCallback), client);
@@ -191,31 +191,30 @@ namespace ProducerApp
                 Socket client = (Socket)ar.AsyncState;
                 // Complete sending the data to the remote device.
                 int bytesSent = client.EndSend(ar);
-                Console.WriteLine("Enviado");
+                
                 // Signal that all bytes have been sent.
                 sendDone.Set();
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.ToString());
+                //Console.WriteLine(e.ToString());
             }
         }
 
         public static int Main(String[] args)
         {
-            //Console.WriteLine("Informe o ip do servidor buffer:");
-            //string ipServer = Console.ReadLine();
-            //ProducerAsync.ip = ipServer;
-            //Console.WriteLine("Informe a porta do servidor:");
-            //int portNumber = Convert.ToInt32(Console.ReadLine());
-            //ProducerAsync.port = portNumber;
-            //Console.WriteLine("Informe a quantidade de threads que devem estar rodando no produtor:");
-            //int threadCount = Convert.ToInt32(Console.ReadLine());
-            int threadCount = 1;
+            Console.WriteLine("Olá este é o consumidor de dados,");
+            Console.WriteLine("Informe o ip do servidor buffer:");
+            ConsumerAsync.ip = Console.ReadLine();
+            Console.WriteLine("Informe a porta do servidor:");
+            ConsumerAsync.port = Convert.ToInt32(Console.ReadLine());
+            Console.WriteLine("Informe a quantidade de threads que devem estar rodando no produtor:");
+            int threadCount = Convert.ToInt32(Console.ReadLine());
             List<Task> taskList = new List<Task>();
             for (int i = 0; i < threadCount; i++)
             {
-                var task = Task.Factory.StartNew(() => StartClient("Thread " + i));
+                string taskName = "Consumidor " + i;
+                var task = Task.Factory.StartNew(() => StartClient(taskName));
                 taskList.Add(task);
             }
             Task.WaitAll(taskList.ToArray());
